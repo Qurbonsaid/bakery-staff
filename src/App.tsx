@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import "./App.css";
 import useQueryParam from "./hooks/useQueryParam";
+import { createXRStore, XR, XRLayer } from "@react-three/xr";
+import { Canvas } from "@react-three/fiber";
 
 function App() {
-  const [approved, setApproved] = useState(false);
   const [userId] = useQueryParam(
     "userId",
     localStorage.getItem("userId") || ""
@@ -13,6 +14,15 @@ function App() {
     "refreshToken",
     localStorage.getItem("refreshToken") || ""
   );
+  const store = createXRStore({
+    controller: false,
+    hand: false,
+    transientPointer: false,
+    gaze: false,
+    screenInput: false,
+    emulate: false,
+    handTracking: false,
+  });
 
   useEffect(() => {
     if (token) {
@@ -29,20 +39,38 @@ function App() {
         })
         .then((data) => {
           if (!data.msg && data._id === userId) {
-            setApproved(true);
             localStorage.setItem("userId", userId);
             localStorage.setItem("token", token);
             localStorage.setItem("refreshToken", refreshToken);
           }
         })
         .catch((error) => {
-          alert("Xatolik yuz berdi: " + error.message);
           console.error("Error fetching user data:", error);
         });
     }
   }, [token, refreshToken, userId]);
 
-  return approved ? <h1>Profile page</h1> : <></>;
+  const video = useMemo(() => {
+    const result = document.createElement("video");
+    result.src = "./video.mp4";
+    return result;
+  }, []);
+
+  return (
+    <>
+      <button onClick={() => store.enterVR()}>Enter VR</button>
+      <Canvas>
+        <XR store={store}>
+          <XRLayer
+            position={[0, 1.5, -0.5]}
+            onClick={() => video.play()}
+            scale={0.5}
+            src={video}
+          />
+        </XR>
+      </Canvas>
+    </>
+  );
 }
 
 export default App;
